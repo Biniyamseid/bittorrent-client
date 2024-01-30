@@ -40,7 +40,7 @@ func decodeBencode(bencodedString string) (interface{}, error) {
 
 func main() {
 	// You can use print statements as follows for debugging, they'll be visible when running tests.
-	fmt.Println("Logs from your program will appear here!")
+	// fmt.Println("Logs from your program will appear here!")
 
 	command := os.Args[1]
 
@@ -54,7 +54,6 @@ func main() {
 			fmt.Println(err)
 			return
 		}
-
 		jsonOutput, _ := json.Marshal(decoded)
 		fmt.Println(string(jsonOutput))
 	} else {
