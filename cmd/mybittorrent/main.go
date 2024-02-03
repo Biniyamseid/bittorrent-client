@@ -666,6 +666,7 @@ func main() {
 		if err != nil {
 			fmt.Println(err)
 			return
+			
 		}
 
 	default:
