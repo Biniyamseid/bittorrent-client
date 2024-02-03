@@ -124,6 +124,13 @@ func main() {
 	command := os.Args[1]
 
 	switch command {
+	case "decode":
+		bencodedValue := os.Args[2]
+		decoded, err := bencode.Decode(strings.NewReader(bencodedValue))
+		if err != nil {
+			log.Fatalf("Failed to decode %q: %v", bencodedValue, err)
+		}
+		fmt.Println(decoded)
 	case "info":
 		torrentFile := os.Args[2]
 		if len(torrentFile) == 0 {
