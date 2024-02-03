@@ -1,6 +1,9 @@
 package main
 
 import (
+	// Uncomment this line to pass the first stage
+	// "encoding/json"
+
 	"bytes"
 	"crypto/sha1"
 	"encoding/binary"
