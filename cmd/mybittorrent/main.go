@@ -124,7 +124,7 @@ func main() {
 			log.Fatalf("Failed to parse %q: %v", torrentFile, err)
 		}
 		fmt.Printf("Tracker URL: %s\n", fileInfo.Announce)
-		fmt.Printf("Length:  %d\n", fileInfo.Info.Length)
+		fmt.Printf("Length: %d", fileInfo.Info.Length)
 
 	default:
 		fmt.Println("Unknown command: " + command)
