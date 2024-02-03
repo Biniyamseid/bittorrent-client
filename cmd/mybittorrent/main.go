@@ -130,7 +130,9 @@ func main() {
 		if err != nil {
 			log.Fatalf("Failed to decode %q: %v", bencodedValue, err)
 		}
-		fmt.Println(decoded)
+		fmt.Printf("%q\n", decoded) // Use %q to print the string with double quotes
+		// rest of your code
+
 	case "info":
 		torrentFile := os.Args[2]
 		if len(torrentFile) == 0 {
