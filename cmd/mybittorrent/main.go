@@ -16,6 +16,14 @@ import (
 	"github.com/jackpal/bencode-go"
 )
 
+func printPieceHashes(pieces []byte) {
+	for i := 0; i < len(pieces); i += 20 {
+		hash := pieces[i : i+20]
+		fmt.Println(hex.EncodeToString(hash))
+
+	}
+}
+
 type FileInfo struct {
 	Announce string
 	Info     map[string]interface{}
@@ -172,6 +180,17 @@ func main() {
 		fmt.Printf("Tracker URL: %s\n", fileInfo.Announce)
 		fmt.Printf("Length: %d\n", fileInfo.Info["length"].(int64))
 		fmt.Printf("Info Hash: %s\n", infoHash)
+		// Print the piece length
+		pieceLength := fileInfo.Info["piece length"].(int64)
+		fmt.Printf("Piece Length: %d\n", pieceLength)
+
+		// Print the piece hashes
+		pieces := fileInfo.Info["pieces"].(string)
+		fmt.Println("Piece Hashes:")
+		for i := 0; i < len(pieces); i += 20 {
+			pieceHash := pieces[i : i+20]
+			fmt.Println(hex.EncodeToString([]byte(pieceHash)))
+		}
 
 	default:
 		fmt.Println("Unknown command: " + command)
