@@ -3,14 +3,19 @@ package main
 import (
 	"bytes"
 	"crypto/sha1"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
+	"net"
+	"net/http"
+	"net/url"
 	"os"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/jackpal/bencode-go"
@@ -190,6 +195,68 @@ func main() {
 		for i := 0; i < len(pieces); i += 20 {
 			pieceHash := pieces[i : i+20]
 			fmt.Println(hex.EncodeToString([]byte(pieceHash)))
+		}
+
+	case "peers":
+		torrentFile := os.Args[2]
+		if len(torrentFile) == 0 {
+			log.Fatalf("No argument provided for 'peers'")
+		}
+		fileInfo, err := ParseFile(torrentFile)
+		if err != nil {
+			log.Fatalf("Failed to parse %q: %v", torrentFile, err)
+		}
+
+		// Bencode the info dictionary
+		bencodedInfo, err := EncodeBytes(fileInfo.Info)
+		if err != nil {
+			log.Fatalf("Failed to bencode info: %v", err)
+		}
+
+		// Calculate the SHA-1 hash
+		hasher := sha1.New()
+		hasher.Write(bencodedInfo)
+		infoHash := hasher.Sum(nil)
+
+		// Create a unique peer ID
+		peerID := "00112233445566778899"
+
+		// Construct the tracker URL with the required query parameters
+		trackerURL, err := url.Parse(fileInfo.Announce)
+		if err != nil {
+			log.Fatalf("Failed to parse tracker URL: %v", err)
+		}
+		query := trackerURL.Query()
+		query.Set("info_hash", string(infoHash))
+		query.Set("peer_id", peerID)
+		query.Set("port", "6881")
+		query.Set("uploaded", "0")
+		query.Set("downloaded", "0")
+		query.Set("left", strconv.FormatInt(fileInfo.Info["length"].(int64), 10))
+		query.Set("compact", "1")
+		trackerURL.RawQuery = query.Encode()
+
+		// Make a GET request to the tracker URL
+		resp, err := http.Get(trackerURL.String())
+		if err != nil {
+			log.Fatalf("Failed to make GET request to tracker: %v", err)
+		}
+		defer resp.Body.Close()
+
+		// Decode the response from the tracker
+		trackerResponse, err := bencode.Decode(resp.Body)
+		if err != nil {
+			log.Fatalf("Failed to decode tracker response: %v", err)
+		}
+
+		// Extract the "peers" value from the response
+		peers := trackerResponse.(map[string]interface{})["peers"].(string)
+
+		// Iterate over the "peers" string and print each peer
+		for i := 0; i < len(peers); i += 6 {
+			ip := net.IP(peers[i : i+4]).String()
+			port := binary.BigEndian.Uint16([]byte(peers[i+4 : i+6]))
+			fmt.Printf("%s:%d\n", ip, port)
 		}
 
 	default:
