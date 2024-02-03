@@ -259,6 +259,63 @@ func main() {
 			fmt.Printf("%s:%d\n", ip, port)
 		}
 
+	case "handshake":
+		torrentFile := os.Args[2]
+		if len(torrentFile) == 0 {
+			log.Fatalf("No argument provided for 'handshake'")
+		}
+		fileInfo, err := ParseFile(torrentFile)
+		if err != nil {
+			log.Fatalf("Failed to parse %q: %v", torrentFile, err)
+		}
+
+		// Bencode the info dictionary
+		bencodedInfo, err := EncodeBytes(fileInfo.Info)
+		if err != nil {
+			log.Fatalf("Failed to bencode info: %v", err)
+		}
+
+		// Calculate the SHA-1 hash
+		hasher := sha1.New()
+		hasher.Write(bencodedInfo)
+		infoHash := hasher.Sum(nil)
+
+		// Parse the peer IP and port
+		peerAddress := os.Args[3]
+		if len(peerAddress) == 0 {
+			log.Fatalf("No argument provided for peer address")
+		}
+
+		// Establish a TCP connection with the peer
+		conn, err := net.Dial("tcp", peerAddress)
+		if err != nil {
+			log.Fatalf("Failed to connect to peer: %v", err)
+		}
+		defer conn.Close()
+
+		// Construct the handshake message
+		// Construct the handshake message
+		protocol := "BitTorrent protocol"
+		reserved := make([]byte, 8) // 8 reserved bytes, all set to zero
+		peerID := []byte("00112233445566778899")
+		handshake := append([]byte{byte(len(protocol))}, append([]byte(protocol), append(reserved, append(infoHash, peerID...)...)...)...)
+		// Send the handshake message to the peer
+		_, err = conn.Write(handshake)
+		if err != nil {
+			log.Fatalf("Failed to send handshake: %v", err)
+		}
+
+		// Receive the handshake message from the peer
+		receivedHandshake := make([]byte, 68) // The handshake message is 68 bytes long
+		_, err = io.ReadFull(conn, receivedHandshake)
+		if err != nil {
+			log.Fatalf("Failed to receive handshake: %v", err)
+		}
+
+		// Extract the peer's ID from the received handshake message and print it in hexadecimal format
+		receivedPeerID := receivedHandshake[48:]
+		fmt.Printf("Peer ID: %s\n", hex.EncodeToString(receivedPeerID))
+
 	default:
 		fmt.Println("Unknown command: " + command)
 		os.Exit(1)
