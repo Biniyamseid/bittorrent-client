@@ -18,10 +18,82 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 
 	bencode "github.com/jackpal/bencode-go"
 	// Available if you need it!
 )
+
+func (cli TorrentClient) Download(torrentFileName string, outputFilePath string) error {
+	t, err := ParseTorrentFile(torrentFileName)
+	if err != nil {
+		return err
+	}
+
+	peers, err := t.GetPeers()
+	if err != nil {
+		return err
+	}
+
+	infoHash, err := t.CalculateInfoHash()
+	if err != nil {
+		return err
+	}
+
+	// Create the output file
+	outputFile, err := os.Create(outputFilePath)
+	if err != nil {
+		return err
+	}
+	defer outputFile.Close()
+
+	// Create a wait group to wait for all pieces to be downloaded
+	var wg sync.WaitGroup
+
+	// Loop over all pieces
+	for pieceIndex := 0; pieceIndex < len(t.Info.Pieces)/20; pieceIndex++ {
+		wg.Add(1)
+
+		go func(pieceIndex int) {
+			defer wg.Done()
+
+			// Loop over all peers
+			for _, peer := range peers {
+				peerAddr := fmt.Sprintf("%s:%d", peer.IP, peer.Port)
+
+				// Download the piece
+				piece, err := cli.DownloadPiece(peerAddr, infoHash, t.Info, pieceIndex)
+				if err != nil {
+					fmt.Println(err)
+					continue
+				}
+
+				// Verify the piece hash
+				pieceHash := cli.calculatePieceHash(piece.Data)
+				if pieceHash != t.Info.Pieces[pieceIndex*20:(pieceIndex+1)*20] {
+					fmt.Println("Piece hash does not match")
+					continue
+				}
+
+				// Write the piece to the output file
+				_, err = outputFile.WriteAt(piece.Data, int64(pieceIndex*t.Info.PieceLength))
+				if err != nil {
+					fmt.Println(err)
+					continue
+				}
+
+				// Break the loop if the piece was successfully downloaded and written
+				break
+			}
+		}(pieceIndex)
+	}
+
+	// Wait for all pieces to be downloaded
+	wg.Wait()
+
+	fmt.Printf("Downloaded %s to %s.\n", torrentFileName, outputFilePath)
+	return nil
+}
 
 // Example:
 // - 5:hello -> hello
@@ -584,6 +656,17 @@ func main() {
 
 		fmt.Printf("Piece %d downloaded to %s\n", pieceIndex, outputFilePath)
 		return
+
+	case "download":
+		outputFilePath := os.Args[3]
+		torrentFileName := os.Args[4]
+
+		cli := NewClient("00112233445566778899")
+		err := cli.Download(torrentFileName, outputFilePath)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
 	default:
 		fmt.Println("Unknown command: " + command)
 	}
