@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -126,12 +127,16 @@ func main() {
 	switch command {
 	case "decode":
 		bencodedValue := os.Args[2]
+
 		decoded, err := bencode.Decode(strings.NewReader(bencodedValue))
 		if err != nil {
-			log.Fatalf("Failed to decode %q: %v", bencodedValue, err)
+
+			fmt.Println(err)
+			return
 		}
-		fmt.Printf("%q\n", decoded) // Use %q to print the string with double quotes
-		// rest of your code
+
+		jsonOutput, _ := json.Marshal(decoded)
+		fmt.Println(string(jsonOutput))
 
 	case "info":
 		torrentFile := os.Args[2]
