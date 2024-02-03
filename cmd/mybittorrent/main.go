@@ -10,6 +10,7 @@ import (
 	"log"
 	"os"
 	"reflect"
+	"sort"
 	"strings"
 
 	"github.com/jackpal/bencode-go"
@@ -107,7 +108,17 @@ func encodeDict(w io.Writer, v reflect.Value) error {
 	if err != nil {
 		return err
 	}
-	for _, key := range v.MapKeys() {
+	keys := v.MapKeys()
+	// Convert the keys to a slice of strings
+	strKeys := make([]string, len(keys))
+	for i, key := range keys {
+		strKeys[i] = key.String()
+	}
+	// Sort the slice of strings
+	sort.Strings(strKeys)
+	// Iterate over the sorted slice to encode the keys and their corresponding values
+	for _, strKey := range strKeys {
+		key := reflect.ValueOf(strKey)
 		err := encode(w, key)
 		if err != nil {
 			return err
@@ -120,7 +131,6 @@ func encodeDict(w io.Writer, v reflect.Value) error {
 	_, err = fmt.Fprint(w, "e")
 	return err
 }
-
 func main() {
 	command := os.Args[1]
 
