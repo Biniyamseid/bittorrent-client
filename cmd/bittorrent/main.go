@@ -1,7 +1,7 @@
 package main
 
 import (
-	// Uncomment this line to pass the first
+
 	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
@@ -225,4 +225,5 @@ func main() {
 		fmt.Println("Unknown command: " + command)
 		os.Exit(1)
 	}
+
 }
